@@ -66,3 +66,7 @@ dist
 */.DS_Store
 yarn-error.log
 *.csv
+
+# for 11 week's task file
+
+text.json

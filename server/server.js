@@ -11,6 +11,8 @@ import Html from '../client/html'
 
 require('colors')
 
+const { appendFile, readFile, writeFile, stat, unlink } = require("fs").promises;
+
 let Root
 try {
   // eslint-disable-next-line import/no-unresolved
@@ -21,8 +23,22 @@ try {
 
 let connections = []
 
+const file = `${__dirname}/text.json`;
+
 const port = process.env.PORT || 8090
 const server = express()
+
+function write(fileName, obj) {
+  writeFile(fileName, JSON.stringify(obj), { encoding: "utf8" });
+} 
+
+function readFromFile(fileName) {
+  readFile(fileName, { encoding: "utf8" });
+}
+
+function append(fileName, obj) {
+  appendFile(fileName, JSON.stringify(obj), { encoding: "utf8" });
+}
 
 const middleware = [
   cors(),
@@ -39,10 +55,57 @@ server.use('/api/', (req, res) => {
   res.end()
 })
 
+server.use((req, res) => {
+  res.set('x-skillcrucial-user', 'e1fe1e87-27c8-4c7a-8337-49279f393577');
+  res.set('Access-Control-Expose-Headers', 'X-SKILLCRUCIAL-USER');
+})
+
 const [htmlStart, htmlEnd] = Html({
   body: 'separator',
   title: 'Skillcrucial'
 }).split('separator')
+
+server.get('/api/v1/users', async (req, res) => {
+  const result = await axios('https://jsonplaceholder.typicode.com/users').then(({ data }) => data);
+
+  stat(file)
+    .then(() =>  write(file, result))
+      .catch(() => append(file, result));
+
+  res.json(result);
+})
+
+server.post('/api/v1/users', (req, res) => {
+  const lastId = JSON.parse(readFromFile(file)).push().id;
+  const obj = { ...req.body, id: lastId + 1 }
+
+  write(file, obj);
+
+  res.json({ status: 'success', id: obj.id});
+})
+
+server.patch('patch /api/v1/users/:userId', (req, res) => {
+  const { id } = req.params;
+
+  const arr = JSON.parse(readFromFile(file));
+
+  write(file, [ ...arr.filter(it => it.id !== id), { ...JSON.parse(req.body), id } ]);
+  res.json({  status: 'success', id })
+})
+
+server.delete('patch /api/v1/users/:userId', (req, res) => {
+  const { id } = req.params;
+  
+  const arr = JSON.parse(readFromFile(file));
+
+  write(file, [ ...arr.filter(it => it.id !== id)]);
+
+  res.json({ status: 'success', id });
+})
+
+server.delete('/api/v1/users', () => {
+  unlink(file);
+})
 
 server.get('/', (req, res) => {
   const appStream = renderToStaticNodeStream(<Root location={req.url} context={{}} />)
