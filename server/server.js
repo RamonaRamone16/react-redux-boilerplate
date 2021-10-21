@@ -68,10 +68,9 @@ server.get('/api/v1/users', async (req, res) => {
   const result = await axios('https://jsonplaceholder.typicode.com/users').then(({ data }) => data);
 
   stat(file)
-    .then(() =>  write(file, result))
       .catch(() => append(file, result));
 
-  res.json(result);
+  res.json(JSON.parse(await read(file)));
 })
 
 server.post('/api/v1/users', async (req, res) => {
