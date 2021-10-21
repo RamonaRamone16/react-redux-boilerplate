@@ -4,6 +4,7 @@ import cors from 'cors'
 import sockjs from 'sockjs'
 import { renderToStaticNodeStream } from 'react-dom/server'
 import React from 'react'
+import axios from 'axios'
 
 import cookieParser from 'cookie-parser'
 import config from './config'
@@ -11,7 +12,7 @@ import Html from '../client/html'
 
 require('colors')
 
-const { appendFile, readFile, writeFile, stat, unlink } = require("fs").promises;
+const { appendFile, readFile, writeFile, stat, unlink,  } = require("fs").promises;
 
 let Root
 try {
@@ -32,8 +33,9 @@ function write(fileName, obj) {
   writeFile(fileName, JSON.stringify(obj), { encoding: "utf8" });
 } 
 
-function readFromFile(fileName) {
-  readFile(fileName, { encoding: "utf8" });
+async function read(fileName) {
+  const data = await readFile(fileName, { encoding: "utf8" });
+  return data;
 }
 
 function append(fileName, obj) {
@@ -50,20 +52,11 @@ const middleware = [
 
 middleware.forEach((it) => server.use(it))
 
-server.use('/api/', (req, res) => {
-  res.status(404)
-  res.end()
-})
-
-server.use((req, res) => {
-  res.set('x-skillcrucial-user', 'e1fe1e87-27c8-4c7a-8337-49279f393577');
-  res.set('Access-Control-Expose-Headers', 'X-SKILLCRUCIAL-USER');
-})
-
 const [htmlStart, htmlEnd] = Html({
   body: 'separator',
   title: 'Skillcrucial'
 }).split('separator')
+
 
 server.get('/api/v1/users', async (req, res) => {
   const result = await axios('https://jsonplaceholder.typicode.com/users').then(({ data }) => data);
@@ -75,36 +68,47 @@ server.get('/api/v1/users', async (req, res) => {
   res.json(result);
 })
 
-server.post('/api/v1/users', (req, res) => {
-  const lastId = JSON.parse(readFromFile(file)).push().id;
-  const obj = { ...req.body, id: lastId + 1 }
+server.post('/api/v1/users', async (req, res) => {
+  const data = JSON.parse(await read(file));
 
-  write(file, obj);
+  const obj = { ...req.body, id: data[data.length - 1].id + 1 }
+
+  write(file, [...data, obj]);
 
   res.json({ status: 'success', id: obj.id});
 })
 
-server.patch('patch /api/v1/users/:userId', (req, res) => {
-  const { id } = req.params;
+server.patch('/api/v1/users/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const data = JSON.parse(await read(file));
 
-  const arr = JSON.parse(readFromFile(file));
+  write(file, [ ...data.filter(it => it.id !== +userId), { ...req.body, id: +userId} ]);
 
-  write(file, [ ...arr.filter(it => it.id !== id), { ...JSON.parse(req.body), id } ]);
-  res.json({  status: 'success', id })
+  res.json({ status: 'success', id: +userId })
 })
 
-server.delete('patch /api/v1/users/:userId', (req, res) => {
-  const { id } = req.params;
+server.delete('/api/v1/users/:userId', async (req, res) => {
+  const { userId } = req.params;
   
-  const arr = JSON.parse(readFromFile(file));
+  const data = JSON.parse(await read(file));
 
-  write(file, [ ...arr.filter(it => it.id !== id)]);
+  write(file, [ ...data.filter(it => it.id !== +userId)]);
 
-  res.json({ status: 'success', id });
+  res.json({ status: 'success', id: +userId });
 })
 
-server.delete('/api/v1/users', () => {
-  unlink(file);
+server.delete('/api/v1/users', (req, res) => {
+  stat(file)
+  .then(() =>  {
+    unlink(file);
+    res.json({ status: 'success'})
+  })
+  .catch(() => res.json({ status: 'fail', message: 'the file isnt exist'}));
+})
+
+server.use('/api/', (req, res) => {
+  res.status(404)
+  res.end()
 })
 
 server.get('/', (req, res) => {
@@ -125,6 +129,11 @@ server.get('/*', (req, res) => {
     res.write(htmlEnd)
     res.end()
   })
+})
+
+server.use((req, res) => {
+  res.set('x-skillcrucial-user', 'e1fe1e87-27c8-4c7a-8337-49279f393577');
+  res.set('Access-Control-Expose-Headers', 'X-SKILLCRUCIAL-USER');
 })
 
 const app = server.listen(port)
