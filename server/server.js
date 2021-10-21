@@ -52,9 +52,10 @@ const middleware = [
 
 middleware.forEach((it) => server.use(it))
 
-server.use((req, res) => {
+server.use((req, res, next) => {
   res.set('x-skillcrucial-user', 'e1fe1e87-27c8-4c7a-8337-49279f393577');
   res.set('Access-Control-Expose-Headers', 'X-SKILLCRUCIAL-USER');
+  next();
 })
 
 const [htmlStart, htmlEnd] = Html({
