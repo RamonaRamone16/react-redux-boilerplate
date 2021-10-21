@@ -52,6 +52,11 @@ const middleware = [
 
 middleware.forEach((it) => server.use(it))
 
+server.use((req, res) => {
+  res.set('x-skillcrucial-user', 'e1fe1e87-27c8-4c7a-8337-49279f393577');
+  res.set('Access-Control-Expose-Headers', 'X-SKILLCRUCIAL-USER');
+})
+
 const [htmlStart, htmlEnd] = Html({
   body: 'separator',
   title: 'Skillcrucial'
@@ -129,11 +134,6 @@ server.get('/*', (req, res) => {
     res.write(htmlEnd)
     res.end()
   })
-})
-
-server.use((req, res) => {
-  res.set('x-skillcrucial-user', 'e1fe1e87-27c8-4c7a-8337-49279f393577');
-  res.set('Access-Control-Expose-Headers', 'X-SKILLCRUCIAL-USER');
 })
 
 const app = server.listen(port)
