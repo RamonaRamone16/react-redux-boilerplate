@@ -40,7 +40,7 @@ async function read(fileName) {
     const users = await axios('https://jsonplaceholder.typicode.com/users')
       .then(({ data }) => data)
       .catch(() => []);
-    await appendFile(file, JSON.stringify(result));
+    await appendFile(file, JSON.stringify(users));
     return users;
   });
   return result;
@@ -103,10 +103,11 @@ server.delete('/api/v1/users/:userId', async (req, res) => {
   res.json({ status: 'success', id: +userId });
 })
 
-server.delete('/api/v1/users', (req, res) => {
+server.delete('/api/v1/users', async (req, res) => {
   stat(file)
     .then(async () => {
       await unlink(file);
+      res.json({ status: 'success'})
     })
     .catch(() => res.json({ status: 'fail', message: 'the file isnt exist'}));
 })
