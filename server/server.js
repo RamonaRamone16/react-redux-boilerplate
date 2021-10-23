@@ -79,7 +79,7 @@ server.post('/api/v1/users', async (req, res) => {
 
   const obj = { ...req.body, id: data[data.length - 1].id + 1 }
 
-  await write(file, JSON.parse([...data, obj]));
+  await write(file, JSON.stringify([...data, obj]));
 
   res.json({ status: 'success', id: obj.id});
 })
@@ -90,7 +90,7 @@ server.patch('/api/v1/users/:userId', async (req, res) => {
 
   const arr = [ { ...req.body, id: +userId}, ...data.filter(it => it.id !== +userId) ];
 
-  await write(file, JSON.parse(arr.sort((a, b) => a.id - b.id)));
+  await write(file, JSON.stringify(arr.sort((a, b) => a.id - b.id)));
 
   res.json({ status: 'success', id: +userId })
 })
@@ -100,7 +100,7 @@ server.delete('/api/v1/users/:userId', async (req, res) => {
   
   const data = JSON.parse(await read(file));
 
-  await write(file, JSON.parse([ ...data.filter(it => it.id !== +userId)]));
+  await write(file, JSON.stringify([ ...data.filter(it => it.id !== +userId)]));
 
   res.json({ status: 'success', id: +userId });
 })
