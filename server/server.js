@@ -12,7 +12,7 @@ import Html from '../client/html'
 
 require('colors')
 
-const { readFile, writeFile, stat, unlink } = require("fs").promises;
+const { appendFile, readFile, writeFile, stat, unlink } = require("fs").promises;
 
 let Root
 try {
@@ -35,17 +35,15 @@ async function write(fileName, obj) {
 
 async function read(fileName) {
   const result = await readFile(fileName, { encoding: "utf8" })
-    .then(async (fileData) => {
-      if(!fileData) {
-        const users = await axios('https://jsonplaceholder.typicode.com/users')
+    .then( data => JSON.parse(data))
+    .catch(async () => {
+      const users = await axios('https://jsonplaceholder.typicode.com/users')
         .then(({ data }) => data)
         .catch(() => []);
-        await write(file, users);
-        return users;
-      } 
-      return fileData;
+      await appendFile(file, JSON.stringify(users));
+      return users;
     });
-  return JSON.parse(result);
+  return result;
 }
 
 const middleware = [
