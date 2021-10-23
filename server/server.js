@@ -12,7 +12,7 @@ import Html from '../client/html'
 
 require('colors')
 
-const { appendFile, readFile, writeFile, stat, unlink } = require("fs").promises;
+const { readFile, writeFile, stat, unlink } = require("fs").promises;
 
 let Root
 try {
@@ -29,21 +29,23 @@ const file = `${__dirname}/text.json`;
 const port = process.env.PORT || 8090
 const server = express()
 
-function write(fileName, obj) {
-  writeFile(fileName, JSON.stringify(obj), { encoding: "utf8" });
+async function write(fileName, obj) {
+  await writeFile(fileName, JSON.stringify(obj), { encoding: "utf8" });
 } 
 
 async function read(fileName) {
   const result = await readFile(fileName, { encoding: "utf8" })
-  .then((data) => JSON.parse(data))
-  .catch(async () => {
-    const users = await axios('https://jsonplaceholder.typicode.com/users')
-      .then(({ data }) => data)
-      .catch(() => []);
-    await appendFile(file, JSON.stringify(users));
-    return users;
-  });
-  return result;
+    .then(async (fileData) => {
+      if(!fileData) {
+        const users = await axios('https://jsonplaceholder.typicode.com/users')
+        .then(({ data }) => data)
+        .catch(() => []);
+        await write(file, users);
+        return users;
+      } 
+      return fileData;
+    });
+  return JSON.parse(result);
 }
 
 const middleware = [
