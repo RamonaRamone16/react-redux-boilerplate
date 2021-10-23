@@ -88,7 +88,9 @@ server.patch('/api/v1/users/:userId', async (req, res) => {
   const { userId } = req.params;
   const data = JSON.parse(await read(file));
 
-  write(file, [ ...data.filter(it => it.id !== +userId), { ...req.body, id: +userId} ]);
+  const arr = [ { ...req.body, id: +userId}, ...data.filter(it => it.id !== +userId) ];
+
+  write(file, arr.sort((a, b) => a.id - b.id));
 
   res.json({ status: 'success', id: +userId })
 })
