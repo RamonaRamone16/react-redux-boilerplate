@@ -86,9 +86,14 @@ server.post('/api/v1/users', async (req, res) => {
 
 server.patch('/api/v1/users/:userId', async (req, res) => {
   const { userId } = req.params;
-  const data = await read(file);
+  const result = await read(file)
+  .then(data => {
+    return data.map( item => {
+      return item.id === +userId ? { id: +userId, ...req.body } : item
+    })
+  });
 
-  await write(file, [ { id: +userId, ...req.body }, ...data.filter(it => it.id !== +userId) ]);
+  await write(file, result);
 
   res.json({ status: 'success', id: +userId })
 })
