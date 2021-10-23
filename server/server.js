@@ -77,7 +77,7 @@ server.get('/api/v1/users', async (req, res) => {
 server.post('/api/v1/users', async (req, res) => {
   const data = await read(file);
 
-  const obj = { id: Math.max.apply(null, data.map(item => item.id)) + 1, ...req.body }
+  const obj = { ...req.body, id: Math.max.apply(null, data.map(item => item.id)) + 1 }
 
   await write(file, [...data, obj]);
 
