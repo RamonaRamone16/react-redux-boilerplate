@@ -12,7 +12,7 @@ import Html from '../client/html'
 
 require('colors')
 
-const { appendFile, readFile, writeFile, stat, unlink,  } = require("fs").promises;
+const { appendFile, readFile, writeFile, stat, unlink } = require("fs").promises;
 
 let Root
 try {
@@ -38,10 +38,6 @@ async function read(fileName) {
   return data;
 }
 
-function append(fileName, obj) {
-  appendFile(fileName, JSON.stringify(obj), { encoding: "utf8" });
-}
-
 const middleware = [
   cors(),
   express.static(path.resolve(__dirname, '../dist/assets')),
@@ -65,12 +61,17 @@ const [htmlStart, htmlEnd] = Html({
 
 
 server.get('/api/v1/users', async (req, res) => {
-  const result = await axios('https://jsonplaceholder.typicode.com/users').then(({ data }) => data);
+  const users = await read(file)
+    .then((data) => JSON.parse(data))
+    .catch(async () => {
+      const result = await axios('https://jsonplaceholder.typicode.com/users')
+        .then(({ data }) => data)
+        .catch(() => []);
+      await appendFile(file, JSON.stringify(result));
+      return result;
+    });
 
-  stat(file)
-      .catch(() => append(file, result));
-
-  res.json(JSON.parse(await read(file)));
+  res.json(users);
 })
 
 server.post('/api/v1/users', async (req, res) => {
@@ -104,11 +105,11 @@ server.delete('/api/v1/users/:userId', async (req, res) => {
 
 server.delete('/api/v1/users', (req, res) => {
   stat(file)
-  .then(() =>  {
-    unlink(file);
-    res.json({ status: 'success'})
-  })
-  .catch(() => res.json({ status: 'fail', message: 'the file isnt exist'}));
+    .then(async () => {
+      await unlink(file);
+      res.json({ status: 'success'})
+    })
+    .catch(() => res.json({ status: 'fail', message: 'the file isnt exist'}));
 })
 
 server.use('/api/', (req, res) => {
