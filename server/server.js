@@ -34,8 +34,16 @@ function write(fileName, obj) {
 } 
 
 async function read(fileName) {
-  const data = await readFile(fileName, { encoding: "utf8" });
-  return data;
+  const result = await readFile(fileName, { encoding: "utf8" })
+  .then((data) => JSON.parse(data))
+  .catch(async () => {
+    const users = await axios('https://jsonplaceholder.typicode.com/users')
+      .then(({ data }) => data)
+      .catch(() => []);
+    await appendFile(file, JSON.stringify(result));
+    return users;
+  });
+  return result;
 }
 
 const middleware = [
@@ -61,23 +69,15 @@ const [htmlStart, htmlEnd] = Html({
 
 
 server.get('/api/v1/users', async (req, res) => {
-  const users = await read(file)
-    .then((data) => JSON.parse(data))
-    .catch(async () => {
-      const result = await axios('https://jsonplaceholder.typicode.com/users')
-        .then(({ data }) => data)
-        .catch(() => []);
-      await appendFile(file, JSON.stringify(result));
-      return result;
-    });
+  const users = await read(file);
 
   res.json(users);
 })
 
 server.post('/api/v1/users', async (req, res) => {
-  const data = JSON.parse(await read(file));
+  const data = await read(file);
 
-  const obj = { ...req.body, id: data[data.length - 1].id + 1 }
+  const obj = { id: Math.max.apply(null, data.map(item => item.id)) + 1, ...req.body }
 
   await write(file, [...data, obj]);
 
@@ -86,11 +86,9 @@ server.post('/api/v1/users', async (req, res) => {
 
 server.patch('/api/v1/users/:userId', async (req, res) => {
   const { userId } = req.params;
-  const data = JSON.parse(await read(file));
+  const data = await read(file);
 
-  const arr = [ { ...req.body, id: +userId}, ...data.filter(it => it.id !== +userId) ];
-
-  await write(file, arr.sort((a, b) => a.id - b.id));
+  await write(file, [ { id: +userId, ...req.body }, ...data.filter(it => it.id !== +userId) ]);
 
   res.json({ status: 'success', id: +userId })
 })
@@ -98,7 +96,7 @@ server.patch('/api/v1/users/:userId', async (req, res) => {
 server.delete('/api/v1/users/:userId', async (req, res) => {
   const { userId } = req.params;
   
-  const data = JSON.parse(await read(file));
+  const data = await read(file);
 
   await write(file, [ ...data.filter(it => it.id !== +userId)]);
 
@@ -109,7 +107,6 @@ server.delete('/api/v1/users', (req, res) => {
   stat(file)
     .then(async () => {
       await unlink(file);
-      res.json({ status: 'success'})
     })
     .catch(() => res.json({ status: 'fail', message: 'the file isnt exist'}));
 })
