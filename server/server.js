@@ -88,8 +88,8 @@ server.patch('/api/v1/users/:userId', async (req, res) => {
   const { userId } = req.params;
   const result = await read(file)
   .then(data => {
-    return data.map( item => {
-      return item.id === +userId ? { id: +userId, ...req.body } : item
+    return data.map(item => {
+      return item.id === +userId ? { ...req.body, id: +userId } : item
     })
   });
 
