@@ -30,6 +30,12 @@ const globalUrl = 'https://jsonplaceholder.typicode.com/users';
 const port = process.env.PORT || 8090
 const server = express()
 
+function max(array) {
+  return array.length > 0 ? array.reduce((acc, current) => {
+    return current > acc ? current : acc;
+  }) : 0
+}
+
 async function write(fileName, obj) {
   await writeFile(fileName, JSON.stringify(obj), { encoding: "utf8" });
 } 
@@ -90,7 +96,7 @@ server.get('/api/v1/users', async (req, res) => {
 server.post('/api/v1/users', async (req, res) => {
   const id = await readOrCreate(file)
     .then(async (data) => {
-      const obj = { ...req.body, id: (Math.max(data.map(item => item.id)) + 1)};
+      const obj = { ...req.body, id: (max(data.map(item => item.id)) + 1)};
       await write(file, [ ...data, obj ] );
       return obj.id;
     });
