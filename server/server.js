@@ -109,7 +109,7 @@ server.patch('/api/v1/users/:userId', async (req, res) => {
   const response = await read(file)
     .then(async (data) => {
       const updatedData =  data.map(item => {
-        return item.id === +userId ? { ...req.body, id: +userId } : item
+        return item.id === +userId ? { ...item, ...req.body, id: +userId } : item
       })
       await write(file, updatedData);
       return { status: 'success', id: +userId }
