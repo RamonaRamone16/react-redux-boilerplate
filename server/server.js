@@ -106,19 +106,19 @@ server.post('/api/v1/users', async (req, res) => {
 
 server.patch('/api/v1/users/:userId', async (req, res) => {
   const { userId } = req.params;
-  const result = await read(file)
-    .catch(() => {
-      res.json({ status: 'no file exist', id: +userId })
-    })
-    .then(data => {
-      return data.map(item => {
+  const response = await read(file)
+    .then(async (data) => {
+      const updatedData =  data.map(item => {
         return item.id === +userId ? { ...req.body, id: +userId } : item
       })
-    });
+      await write(file, updatedData);
+      return { status: 'success', id: +userId }
+    })
+    .catch(() => {
+      return { status: 'no file exist', id: +userId }
+    })
 
-  await write(file, result);
-
-  res.json({ status: 'success', id: +userId })
+  res.json(response)
 })
 
 server.delete('/api/v1/users/:userId', async (req, res) => {
